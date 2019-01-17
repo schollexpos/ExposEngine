@@ -1,29 +1,47 @@
 #pragma once
+#include "helper.h"
 
-class Entity;
+namespace expos {
+	class Entity;
+	class Character;
+	class Object;
+	
+	inline const HandleTableInstance<Object>& objectHT() {
+		static HandleTableInstance<Object> table(H_OBJECT, 128);
+		
+	}
 
-class EntityRenderer {
-	/* 
-		Contains Information
-	*/
-private:
-	Entity *owner;
-public:
-	virtual void draw() = 0;
-};
+	class EntityRenderer {
+		/*
+			Contains Information
+		*/
+	private:
+		Entity * owner;
+	public:
+		virtual void draw() {};
+	};
 
-class EntityLogic {
-private:
-	Entity *owner;
-public:
-	virtual void update() = 0;
-};
+	class EntityLogic {
+	private:
+		Entity * owner;
+	public:
+		virtual void update() {};
+	};
 
-class Entity {
-private:
-	EntityRenderer *renderer;
-	EntityLogic *logic;
-public:
+	class Entity {
+	private:
+		EntityRenderer renderer;
+		EntityLogic logic;
+	public:
 
-	virtual void check() = 0;
-};
+		virtual void check() = 0;
+	};
+
+	class EntityManager {
+	private:
+		HandleTableInstance<Entity> handleTable;
+	public:
+
+	};
+
+}
