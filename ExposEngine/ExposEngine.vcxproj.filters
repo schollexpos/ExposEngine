@@ -45,6 +45,12 @@
     <ClInclude Include="packfile.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="messagebus.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="poolLinkedList.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -62,13 +68,19 @@
     <ClCompile Include="animation.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="game.cpp">
-      <Filter>Headerdateien</Filter>
-    </ClCompile>
     <ClCompile Include="contentfile.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="packfile.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="messagebus.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="game.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="poolLinkedList.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

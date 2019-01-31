@@ -19,20 +19,7 @@ namespace expos {
 
 		std::cout << graphicOptions << std::endl;
 		
-		int screenMode = (graphicOptions->getInt("fullscreen", 0) != 0 ? ALLEGRO_FULLSCREEN_WINDOW : ALLEGRO_WINDOWED);
-		al_set_new_display_flags(screenMode | ALLEGRO_OPENGL | ALLEGRO_PROGRAMMABLE_PIPELINE);
-
-		int optionMode = (graphicOptions->getInt("_force_options", 0) != 0 ? ALLEGRO_REQUIRE : ALLEGRO_SUGGEST);
-
-		al_set_new_display_option(ALLEGRO_VSYNC, graphicOptions->getInt("vsync",  1), optionMode);
-		int bmpFlags = 0;
-		if (graphicOptions->getInt("linear_filtering", 1)) bmpFlags |= ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR;
-		if (graphicOptions->getInt("mipmap", 0)) bmpFlags |= ALLEGRO_MIPMAP;
-
-		al_set_new_bitmap_flags(bmpFlags);
-
-		display = al_create_display(1280, 720);
-		al_register_event_source(queue, al_get_display_event_source(display));
+		
 	}
 
 	Game::~Game() {
@@ -41,6 +28,43 @@ namespace expos {
 	}
 
 	void *updateLoop(ALLEGRO_THREAD *thread, void *arg) {
+
+		while (!al_get_thread_should_stop(thread)) {
+
+		}
+
+		return nullptr;
+	}
+
+	void drawThreadFunc(ALLEGRO_THREAD *thread, void *arg) {
+		/* Takes:
+			ALLEGRO_EVENT_QUEUE*
+			CONTENTFILE* (containing init data)
+		*/
+		void **arguments = (void**)arg;
+		ALLEGRO_DISPLAY *display;
+
+		ALLEGRO_EVENT_QUEUE *eventQueue = ((ALLEGRO_EVENT_QUEUE*)arguments[0]);
+		ContentFile *graphicOptions = ((ContentFile*)arguments[1]);
+
+		int screenMode = (graphicOptions->getInt("fullscreen", 0) != 0 ? ALLEGRO_FULLSCREEN_WINDOW : ALLEGRO_WINDOWED);
+		al_set_new_display_flags(screenMode | ALLEGRO_OPENGL | ALLEGRO_PROGRAMMABLE_PIPELINE);
+
+		int optionMode = (graphicOptions->getInt("_force_options", 0) != 0 ? ALLEGRO_REQUIRE : ALLEGRO_SUGGEST);
+
+		al_set_new_display_option(ALLEGRO_VSYNC, graphicOptions->getInt("vsync", 1), optionMode);
+		int bmpFlags = 0;
+		if (graphicOptions->getInt("linear_filtering", 1)) bmpFlags |= ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR;
+		if (graphicOptions->getInt("mipmap", 0)) bmpFlags |= ALLEGRO_MIPMAP;
+
+		al_set_new_bitmap_flags(bmpFlags);
+
+		display = al_create_display(1280, 720);
+		al_register_event_source(eventQueue, al_get_display_event_source(display));
+
+		while (!al_get_thread_should_stop(thread)) {
+
+		}
 
 		return nullptr;
 	}
@@ -72,7 +96,7 @@ namespace expos {
 
 	void Game::checkAllegro() {
 		ALLEGRO_EVENT ev;
-		while (al_get_next_event(queue, &ev)) {
+		while (al_peek_next_event(queue, &ev)) {
 			switch (ev.type) {
 			case ALLEGRO_EVENT_DISPLAY_CLOSE:
 				this->running = false;
