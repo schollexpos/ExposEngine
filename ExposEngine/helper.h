@@ -2,8 +2,10 @@
 #include <cstdint>
 #include <cassert>
 #include "stdafx.h" 
-
+class ContentFile;
 namespace expos {
+
+	
 
 	class Bitmap;
 	class Font;
@@ -16,6 +18,23 @@ namespace expos {
 	class Character;
 	class Object;
 	class Room;
+
+	template<typename T>
+	struct Point {
+		T x, y;
+	};
+
+	template<typename T>
+	struct Rect {
+		Point<T> origin, size;
+	};
+
+	enum DIRECTION {
+		DIR_LEFT,
+		DIR_RIGHT,
+		DIR_UP,
+		DIR_DOWN
+	};
 
 	enum HANDLETYPE : std::uint16_t {
 		H_INVALID = 0x0000,
@@ -39,33 +58,8 @@ namespace expos {
 		HANDLEEND = 0x0013
 	};
 
-	std::map<std::string, HANDLETYPE> generateHTMap() {
-		std::map<std::string, HANDLETYPE> map;
-		map["str_"] = H_STRING;
-		map["bitm"] = H_BITMAP;
-		map["font"] = H_FONT;
-		map["anim"] = H_ANIMATION;
-		map["soun"] = H_SOUND;
-		map["musi"] = H_MUSIC;
-		map["movi"] = H_MOVIE;
-		map["scri"] = H_SCRIPT;
-		map["gpan"] = H_GUIPANEL;
-		map["acto"] = H_ACTOR;
-		map["item"] = H_ITEM;
-		map["room"] = H_ROOM;
-		return map;
-	}
-	
-
-	HANDLETYPE getHandleType(const std::string& str) {
-		if (str.length() <= 4) return HANDLEEND;
-		
-		static std::map<std::string, HANDLETYPE> htMap = generateHTMap();
-
-		auto it = htMap.find(str.substr(0, 4));
-		if (it == htMap.end()) return HANDLEEND;
-		return it->second;
-	}
+	std::map<std::string, HANDLETYPE> generateHTMap();
+	HANDLETYPE getHandleType(const std::string& str);
 
 	union Handle {
 		std::uint32_t v;
@@ -75,30 +69,11 @@ namespace expos {
 		} part;
 	};
 
-	void exposError(const char *message) {
-		int *peter = (int*)0xDEADBEEF;
-		*peter = 0xDEADC0DE;
-		//Crasht hier
-	}
+	void exposError(const char *message);
 
-	bool createCRCLookup(uint_fast16_t table[]) {
-		uint_fast16_t remainder;
-		for (size_t i = 0; i < 256; i++) {
-			remainder = i;
-			for (size_t j = 0; j < 8; j++) {
-				if (remainder & 1) {
-					remainder >>= 1;
-					remainder ^= 0xedb88320;
-				} else {
-					remainder >>= 1;
-				}
-			}
-			table[i] = remainder;
-		}
-		return true;
-	}
+	bool createCRCLookup(uint_fast16_t table[]);
 
-	uint_fast16_t crc(const std::string& str) {
+	/*uint_fast16_t crc(const std::string& str) {
 		static uint_fast16_t lookupTable[256];
 		static bool success = createCRCLookup(lookupTable);
 
@@ -110,19 +85,38 @@ namespace expos {
 		}
 
 		return crc16;
-	}
+	}*/
 
-	Handle getHandle(const std::string& id) {
-		auto hash = crc(id);
-		static std::map<uint_fast16_t, Handle> hMap;
-		while (hMap.find(hash) != hMap.end()) {
-			hash++;
+
+	extern std::map<std::string, Handle> idMap;
+
+	void registerID(const std::string& id, Handle h);
+	Handle getHandle(const std::string& id);
+
+	template<typename T, HANDLETYPE type, size_t n>
+	class HandleKeeper {
+	private:
+		T *handles[n];
+		size_t open = 0;
+	public:
+		Handle registerObject(const std::string& id, T *object) {
+			Handle h = this->registerObject(object);
+			registerID(id, h);
+			return h;
 		}
 
-		Handle h;
-		h.part.v = hash;
-		h.part.t = getHandleType(id);
+		Handle registerObject(T *object) {
+			handles[open] = object;
+			Handle h;
+			h.part.t = type;
+			h.part.v = open++;
+			return h;
+		}
 
-		return h;
-	}
+		T *operator[](Handle h) {
+			return handles[h.part.v];
+		}
+
+	};
+
 }
