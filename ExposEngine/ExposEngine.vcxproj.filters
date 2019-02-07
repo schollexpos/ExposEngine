@@ -48,7 +48,7 @@
     <ClInclude Include="messagebus.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="poolLinkedList.h">
+    <ClInclude Include="window.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -80,7 +80,7 @@
     <ClCompile Include="game.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="poolLinkedList.cpp">
+    <ClCompile Include="window.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

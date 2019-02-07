@@ -4,7 +4,9 @@
 #include <allegro5/allegro_audio.h>
 #include <allegro5/allegro_acodec.h>
 #include <allegro5/allegro_font.h>
+#include <allegro5/allegro_primitives.h>
 #include "contentfile.h"
+#include "window.h"
 
 namespace expos {
 
@@ -12,10 +14,8 @@ namespace expos {
 	private:
 		ContentFile gameConfig;
 		ALLEGRO_EVENT_QUEUE * queue;
-		ALLEGRO_DISPLAY *display;
 		ALLEGRO_TIMER *logicTimer;
-
-		bool doRedraw = true;
+		Window *mainWindow;
 		bool drawingHalted = false;
 		bool running = true;
 	public:
@@ -24,7 +24,7 @@ namespace expos {
 
 		void run();
 		
-		void draw();
+
 		void checkAllegro();
 
 

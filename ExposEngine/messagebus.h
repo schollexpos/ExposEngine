@@ -1,10 +1,13 @@
 #pragma once
-#include "circular_buffer.h"
+#include "stdafx.h"
+#include <allegro5/allegro.h>
+#include "helper.h"
 
 namespace expos {
 
 	enum MESSAGETYPE {
 		MESSAGE_DISPLAYEVENT,
+		MESSAGE_WINDOW_LOADBITMAP
 	};
 
 #define RECIEVER_GAME		0x01
@@ -19,9 +22,14 @@ namespace expos {
 	struct Message {
 		union {
 			struct {
-				int val1, val2, val3, val4;
+				uint32_t val1, val2, val3, val4;
 			} general;
+			struct {
+				Handle window, bitmap;
+				MemfileInfo m;
+			} window;
 		} data;
+		Message *next;
 		MESSAGETYPE type;
 		uint8_t recievers;
 	};
@@ -30,8 +38,8 @@ namespace expos {
 	protected:
 		uint8_t recieving;
 	public:
-
-		virtual void recieve(Message*) = 0;
+		//returns true if the event was consumed and shouldn't be propagated further
+		virtual bool recieve(Message*) = 0;
 
 		uint8_t getRecieving() { return recieving; }
 
@@ -39,17 +47,33 @@ namespace expos {
 
 	class MessageBus {
 	private:
-		circular_buffer<Message> messages;
+		ALLEGRO_MUTEX * mutexMQueue, *mutexRecievers;
+		static constexpr size_t MAXMESSAGECOUNT = 64;
+		Message * messages;
+
+		Message *first = nullptr, *open = nullptr;
+		std::vector<MessageReciever*> messageRecievers;
 	public:
 		MessageBus();
 		~MessageBus();
 
+		void registerReciever(MessageReciever *mr) {
+			al_lock_mutex(mutexRecievers);
+			messageRecievers.push_back(mr);
+			al_unlock_mutex(mutexRecievers);
+		}
+
 		Message *createMessage();
+		void pushMessage(Message*);
+
+		void handleMessages();
 
 
-
-
+		bool isEmpty() { return first == nullptr; }
+		bool isFull() { return open == nullptr; }
 	};
 
+
+	void messageWindowLoadBitmap(Message *m, MemfileInfo info, Handle window);
 
 }

@@ -25,9 +25,22 @@ namespace expos {
 	};
 
 	template<typename T>
-	struct Rect {
-		Point<T> origin, size;
+	struct Size {
+		T w, h;
 	};
+
+	template<typename T>
+	struct Rect {
+		Point<T> origin;
+		Size<T> size;
+	};
+
+	struct MemfileInfo {
+		void *mem; 
+		int32_t size;
+	};
+
+	typedef uint32_t Pixel;
 
 	enum DIRECTION {
 		DIR_LEFT,
@@ -40,34 +53,52 @@ namespace expos {
 		H_INVALID = 0x0000,
 		H_STRING = 0x0001,
 
-		H_BITMAP = 0x0002,
-		H_FONT = 0x0003,
-		H_ANIMATION = 0x0004,
-		H_SOUND = 0x0005,
-		H_MUSIC = 0x0006,
-		H_MOVIE = 0x0007,
+		H_PPOINT = 0x0500,
+		H_PLINE = 0x0501,
+		H_PTRIANGLE = 0x0502,
+		H_PFILLTRIANGLE = 0x0503,
+		H_PRECT = 0x0504,
+		H_PFILLRECT = 0x0505,
+		H_PCIRCLE = 0x0506,
+		H_PFILLCIRCLE = 0x0507,
+		
 
-		H_SCRIPT = 0x0008,
+		H_BITMAP = 0x1000,
+		H_FONT = 0x1001,
+		H_ANIMATION = 0x1002,
+		H_SOUND = 0x1003,
+		H_MUSIC = 0x1004,
+		H_MOVIE = 0x1005,
 
-		H_GUIPANEL = 0x0009,
+		H_SCRIPT = 0x2000,
 
-		H_ACTOR = 0x0010,
-		H_ITEM = 0x0011,
-		H_ROOM = 0x0012,
+		H_GUIPANEL = 0x3000,
 
-		HANDLEEND = 0x0013
+		H_ACTOR = 0x4000,
+		H_ITEM = 0x4000,
+		H_ROOM = 0x4000,
+
+		HANDLEEND = 0xFFFF
 	};
 
 	std::map<std::string, HANDLETYPE> generateHTMap();
 	HANDLETYPE getHandleType(const std::string& str);
 
+	typedef uint16_t HandleIndex;
+
 	union Handle {
 		std::uint32_t v;
 		struct {
-			std::uint16_t v;
+			HandleIndex v;
 			HANDLETYPE t;
 		} part;
 	};
+
+	inline Handle handle(HANDLETYPE t) {
+		Handle h;
+		h.part.t = t;
+		return h;
+	}
 
 	void exposError(const char *message);
 

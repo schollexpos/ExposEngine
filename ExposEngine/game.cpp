@@ -1,5 +1,4 @@
 #include "stdafx.h"
-
 #include "game.h"
 
 namespace expos {
@@ -10,19 +9,20 @@ namespace expos {
 		al_install_keyboard();
 		al_install_mouse();
 		al_install_joystick();
+		al_init_primitives_addon();
 
 		queue = al_create_event_queue();
 
 		logicTimer = al_create_timer(ALLEGRO_BPS_TO_SECS(60));
+		al_register_event_source(queue, al_get_timer_event_source(logicTimer));
 
-		ContentFile *graphicOptions = gameConfig.getCFSafe("graphic");
-
-		std::cout << graphicOptions << std::endl;
-		
-		
+		ContentFile *graphicOptions = gameConfig.getCFSafe("window0");
+		mainWindow = new Window(graphicOptions, queue);
 	}
 
 	Game::~Game() {
+		delete mainWindow;
+
 		al_destroy_event_queue(queue);
 		al_destroy_timer(logicTimer);
 	}
@@ -36,38 +36,6 @@ namespace expos {
 		return nullptr;
 	}
 
-	void drawThreadFunc(ALLEGRO_THREAD *thread, void *arg) {
-		/* Takes:
-			ALLEGRO_EVENT_QUEUE*
-			CONTENTFILE* (containing init data)
-		*/
-		void **arguments = (void**)arg;
-		ALLEGRO_DISPLAY *display;
-
-		ALLEGRO_EVENT_QUEUE *eventQueue = ((ALLEGRO_EVENT_QUEUE*)arguments[0]);
-		ContentFile *graphicOptions = ((ContentFile*)arguments[1]);
-
-		int screenMode = (graphicOptions->getInt("fullscreen", 0) != 0 ? ALLEGRO_FULLSCREEN_WINDOW : ALLEGRO_WINDOWED);
-		al_set_new_display_flags(screenMode | ALLEGRO_OPENGL | ALLEGRO_PROGRAMMABLE_PIPELINE);
-
-		int optionMode = (graphicOptions->getInt("_force_options", 0) != 0 ? ALLEGRO_REQUIRE : ALLEGRO_SUGGEST);
-
-		al_set_new_display_option(ALLEGRO_VSYNC, graphicOptions->getInt("vsync", 1), optionMode);
-		int bmpFlags = 0;
-		if (graphicOptions->getInt("linear_filtering", 1)) bmpFlags |= ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR;
-		if (graphicOptions->getInt("mipmap", 0)) bmpFlags |= ALLEGRO_MIPMAP;
-
-		al_set_new_bitmap_flags(bmpFlags);
-
-		display = al_create_display(1280, 720);
-		al_register_event_source(eventQueue, al_get_display_event_source(display));
-
-		while (!al_get_thread_should_stop(thread)) {
-
-		}
-
-		return nullptr;
-	}
 
 	void Game::run() {
 		ALLEGRO_THREAD *updateThread = al_create_thread(updateLoop, nullptr);
@@ -75,23 +43,18 @@ namespace expos {
 		al_start_timer(logicTimer);
 		al_start_thread(updateThread);
 
+		mainWindow->open();
+
 		while (this->running) {
 			this->checkAllegro();
-			this->draw();
-
-			al_flip_display();
 		}
+
+		mainWindow->close();
 
 		al_join_thread(updateThread, nullptr);
 		al_stop_timer(logicTimer);
 		
 		al_destroy_thread(updateThread);
-	}
-
-	void Game::draw() {
-		if (!this->doRedraw) return;
-
-		this->doRedraw = false;
 	}
 
 	void Game::checkAllegro() {
@@ -103,7 +66,7 @@ namespace expos {
 				break;
 			case ALLEGRO_EVENT_DISPLAY_SWITCH_OUT:
 				//al_clear_keyboard_state(display);
-				break;
+				break;/*
 			case ALLEGRO_EVENT_DISPLAY_HALT_DRAWING:
 				this->drawingHalted = true;
 				al_acknowledge_drawing_halt(display);
@@ -113,9 +76,19 @@ namespace expos {
 				this->drawingHalted = false;
 				al_acknowledge_drawing_resume(display);
 				al_start_timer(logicTimer);
-				break;
+				break;*/
 			case ALLEGRO_EVENT_TIMER:
 				if (ev.timer.source == logicTimer && al_get_timer_count(logicTimer) >= 2) {
+					auto *list = mainWindow->lockDraw();
+					list[0].PRIMITIVE.h = handle(H_PLINE);
+					list[0].PRIMITIVE.a = { 50, 50 };
+					list[0].PRIMITIVE.b = { 500, 530 };
+					list[0].PRIMITIVE.col = al_map_rgb(255, 0, 255);
+					list[0].PRIMITIVE.thickness = 3.2;
+
+					list[1].PRIMITIVE.h = handle(H_INVALID);
+
+					mainWindow->unlockDraw();
 					al_set_timer_count(this->logicTimer, 0);
 					break;
 				}
