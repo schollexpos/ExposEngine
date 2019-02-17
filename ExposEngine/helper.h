@@ -5,8 +5,6 @@
 class ContentFile;
 namespace expos {
 
-	
-
 	class Bitmap;
 	class Font;
 	class Animation;
@@ -49,56 +47,93 @@ namespace expos {
 		DIR_DOWN
 	};
 
-	enum HANDLETYPE : std::uint16_t {
-		H_INVALID = 0x0000,
-		H_STRING = 0x0001,
+	enum IDTYPE : std::uint16_t {
+		ID_INVALID = 0x0000,
+		ID_STRING = 0x0001,
+		ID_WINDOW = 0x0002,
 
-		H_PPOINT = 0x0500,
-		H_PLINE = 0x0501,
-		H_PTRIANGLE = 0x0502,
-		H_PFILLTRIANGLE = 0x0503,
-		H_PRECT = 0x0504,
-		H_PFILLRECT = 0x0505,
-		H_PCIRCLE = 0x0506,
-		H_PFILLCIRCLE = 0x0507,
+		ID_PPOINT = 0x0500,
+		ID_PLINE = 0x0501,
+		ID_PTRIANGLE = 0x0502,
+		ID_PFILLTRIANGLE = 0x0503,
+		ID_PRECT = 0x0504,
+		ID_PFILLRECT = 0x0505,
+		ID_PCIRCLE = 0x0506,
+		ID_PFILLCIRCLE = 0x0507,
 		
 
-		H_BITMAP = 0x1000,
-		H_FONT = 0x1001,
-		H_ANIMATION = 0x1002,
-		H_SOUND = 0x1003,
-		H_MUSIC = 0x1004,
-		H_MOVIE = 0x1005,
+		ID_BITMAP = 0x1000,
+		ID_FONT = 0x1001,
+		ID_ANIMATION = 0x1002,
+		ID_SOUND = 0x1003,
+		ID_MUSIC = 0x1004,
+		ID_MOVIE = 0x1005,
 
-		H_SCRIPT = 0x2000,
+		ID_SCRIPT = 0x2000,
 
-		H_GUIPANEL = 0x3000,
+		ID_GUIPANEL = 0x3000,
 
-		H_ACTOR = 0x4000,
-		H_ITEM = 0x4000,
-		H_ROOM = 0x4000,
+		ID_ACTOR = 0x4000,
+		ID_ITEM = 0x4000,
+		ID_ROOM = 0x4000,
 
-		HANDLEEND = 0xFFFF
+		ID_END = 0xFFFF
 	};
 
-	std::map<std::string, HANDLETYPE> generateHTMap();
-	HANDLETYPE getHandleType(const std::string& str);
+	std::map<std::string, IDTYPE> generateIDTypeMap();
+	IDTYPE getIDType(const std::string& str);
 
-	typedef uint16_t HandleIndex;
+	typedef uint16_t IDKey;
 
-	union Handle {
+	class ID;
+
+	extern std::map<std::string, ID> idMap;
+
+	void registerID(const std::string& id, ID h);
+	ID getID(const std::string& id);
+
+	union ID_ref {
 		std::uint32_t v;
 		struct {
-			HandleIndex v;
-			HANDLETYPE t;
+			IDKey v;
+			IDTYPE t;
 		} part;
 	};
 
-	inline Handle handle(HANDLETYPE t) {
-		Handle h;
-		h.part.t = t;
-		return h;
-	}
+	class ID {
+	private: 
+		ID_ref val;
+		static std::map<IDTYPE, IDKey> used;
+	public:
+		ID() {}
+
+		ID(IDTYPE t) {
+			this->val.part.t = t;
+
+			auto it = used.find(t);
+			if (it == used.end()) {
+				used.insert(std::pair<IDTYPE, IDKey>(t, (IDKey)0));
+				this->val.part.v = 0;
+			}
+			else {
+				this->val.part.v = it->second++;
+			}
+		}
+
+		ID(const ID& id) {
+			this->val = id();
+		}
+
+		ID_ref operator()() const {
+			return this->val;
+		}
+
+		ID_ref _ref() {
+			return this->val;
+		}
+
+		ID(const std::string& str) : ID(getID(str)) {}
+	};
 
 	void exposError(const char *message);
 
@@ -118,12 +153,7 @@ namespace expos {
 		return crc16;
 	}*/
 
-
-	extern std::map<std::string, Handle> idMap;
-
-	void registerID(const std::string& id, Handle h);
-	Handle getHandle(const std::string& id);
-
+	/*
 	template<typename T, HANDLETYPE type, size_t n>
 	class HandleKeeper {
 	private:
@@ -148,6 +178,6 @@ namespace expos {
 			return handles[h.part.v];
 		}
 
-	};
+	};*/
 
 }

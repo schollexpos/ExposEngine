@@ -37,7 +37,7 @@ namespace expos {
 
 	class Animation {
 	private:
-		Handle self, bitmap;
+		ID id, bitmap;
 		std::vector<AnimationImage> images;
 		std::vector<AnimationFrame> frames;
 	public:
@@ -52,7 +52,7 @@ namespace expos {
 			return ai;
 		}
 
-		Handle getBitmap() { return bitmap; }
+		ID getBitmap() { return bitmap; }
 
 		size_t getImageCount() { return images.size(); }
 		size_t getFrameCount() { return frames.size(); }

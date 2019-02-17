@@ -1,11 +1,12 @@
 
 #include "stdafx.h"
 #include "animation.h"
+#include "contentfile.h"
 
 namespace expos {
 
 
-	Animation::Animation(ContentFile *cf) {
+	Animation::Animation(ContentFile *cf) : id(cf->getValue("id", "null")), bitmap(cf->getValue("bitmap", "null")) {
 
 	}
 

@@ -166,6 +166,7 @@
     <ClInclude Include="contentfile.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="game.h" />
+    <ClInclude Include="gui.h" />
     <ClInclude Include="helper.h" />
     <ClInclude Include="messagebus.h" />
     <ClInclude Include="packfile.h" />
@@ -180,6 +181,7 @@
     <ClCompile Include="entity.cpp" />
     <ClCompile Include="ExposEngine.cpp" />
     <ClCompile Include="game.cpp" />
+    <ClCompile Include="gui.cpp" />
     <ClCompile Include="helper.cpp" />
     <ClCompile Include="messagebus.cpp" />
     <ClCompile Include="packfile.cpp" />

@@ -39,7 +39,7 @@ namespace expos {
 		display = al_create_display(1280, 720);
 		al_register_event_source(eventQueue, al_get_display_event_source(display));
 
-		std::map<HandleIndex, ALLEGRO_BITMAP*> bitmaps;
+		std::map<ID, ALLEGRO_BITMAP*> bitmaps;
 
 		int myFrame = 0;
 		while (!al_get_thread_should_stop(thread)) {
@@ -49,18 +49,16 @@ namespace expos {
 				myFrame = *frameToDisplay;
 				
 				for (size_t i = 0; i < DRAWLISTSIZE; i++) {
-					if (drawList[i].PRIMITIVE.h.part.t == H_INVALID) break;
-
-					std::cout << drawList[i].PRIMITIVE.h.part.t << " " << H_PLINE << std::endl;
+					if (drawList[i].PRIMITIVE.h.part.t == ID_INVALID) break;
 
 					switch (drawList[i].PRIMITIVE.h.part.t) {
-					case H_BITMAP:
+					case ID_BITMAP:
 
 						break;
-					case H_FONT:
+					case ID_FONT:
 
 						break;
-					case H_PLINE:
+					case ID_PLINE:
 						al_draw_line(drawList[i].PRIMITIVE.a.x, drawList[i].PRIMITIVE.a.y, drawList[i].PRIMITIVE.b.x, drawList[i].PRIMITIVE.b.y, drawList[i].PRIMITIVE.col, drawList[i].PRIMITIVE.thickness);
 						break;
 					}
@@ -75,7 +73,7 @@ namespace expos {
 	}
 
 
-	Window::Window(Handle h, ContentFile *windowConfig, ALLEGRO_EVENT_QUEUE *queue) : h(h), mutex(al_create_mutex()) {
+	Window::Window(ID id, ContentFile *windowConfig, ALLEGRO_EVENT_QUEUE *queue) : id(id), mutex(al_create_mutex()) {
 		void **arguments = new void*[5] { (void*)drawList, (void*)queue, (void*)windowThread, (void*) &frame, (void*) mutex};
 		thread = al_create_thread(windowThread, arguments);
 	}

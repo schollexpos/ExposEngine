@@ -61,10 +61,11 @@ namespace expos {
 
 	/* Message-Builder */
 
-	void messageWindowLoadBitmap(Message *m, MemfileInfo info, Handle window) {
+	void messageWindowLoadBitmap(Message *m, MemfileInfo info, ID window) {
 		m->type = MESSAGE_WINDOW_LOADBITMAP;
 		m->recievers = RECIEVER_DISPLAY;
-		m->data.
+		m->data.window.m = info;
+		m->data.window.window = window._ref();
 	}
 
 }

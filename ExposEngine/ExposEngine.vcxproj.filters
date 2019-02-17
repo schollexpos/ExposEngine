@@ -51,6 +51,9 @@
     <ClInclude Include="window.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="gui.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -81,6 +84,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="window.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="gui.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

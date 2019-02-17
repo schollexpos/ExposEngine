@@ -10,12 +10,12 @@ namespace expos {
 		MESSAGE_WINDOW_LOADBITMAP
 	};
 
-#define RECIEVER_GAME		0x01
-#define RECIEVER_FILEMAN	0x02
-#define RECIEVER_DISPLAY	0x04
-#define RECIEVER_AUDIO		0x08
-#define RECIEVER_LOGIC		0x10
-#define RECIEVER_SCRIPT		0x20
+constexpr auto RECIEVER_GAME = 0x01;
+constexpr auto RECIEVER_FILEMAN = 0x02;
+constexpr auto RECIEVER_DISPLAY = 0x04;
+constexpr auto  RECIEVER_AUDIO = 0x08;
+constexpr auto  RECIEVER_LOGIC = 0x10;
+constexpr auto  RECIEVER_SCRIPT = 0x20;
 
 
 
@@ -25,7 +25,7 @@ namespace expos {
 				uint32_t val1, val2, val3, val4;
 			} general;
 			struct {
-				Handle window, bitmap;
+				ID_ref window, bitmap;
 				MemfileInfo m;
 			} window;
 		} data;
@@ -74,6 +74,6 @@ namespace expos {
 	};
 
 
-	void messageWindowLoadBitmap(Message *m, MemfileInfo info, Handle window);
+	void messageWindowLoadBitmap(Message *m, MemfileInfo info, ID window);
 
 }

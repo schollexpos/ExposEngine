@@ -17,7 +17,7 @@ namespace expos {
 		al_register_event_source(queue, al_get_timer_event_source(logicTimer));
 
 		ContentFile *graphicOptions = gameConfig.getCFSafe("window0");
-		mainWindow = new Window(graphicOptions, queue);
+		mainWindow = new Window(ID(ID_WINDOW), graphicOptions, queue);
 	}
 
 	Game::~Game() {
@@ -80,13 +80,13 @@ namespace expos {
 			case ALLEGRO_EVENT_TIMER:
 				if (ev.timer.source == logicTimer && al_get_timer_count(logicTimer) >= 2) {
 					auto *list = mainWindow->lockDraw();
-					list[0].PRIMITIVE.h = handle(H_PLINE);
+					list[0].PRIMITIVE.h = ID(ID_PLINE)._ref();
 					list[0].PRIMITIVE.a = { 50, 50 };
 					list[0].PRIMITIVE.b = { 500, 530 };
 					list[0].PRIMITIVE.col = al_map_rgb(255, 0, 255);
 					list[0].PRIMITIVE.thickness = 3.2;
 
-					list[1].PRIMITIVE.h = handle(H_INVALID);
+					list[1].PRIMITIVE.h = ID(ID_INVALID)._ref();
 
 					mainWindow->unlockDraw();
 					al_set_timer_count(this->logicTimer, 0);

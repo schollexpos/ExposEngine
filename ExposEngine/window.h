@@ -9,18 +9,18 @@ namespace expos {
 
 	union DrawListEntry {
 		struct {
-			Handle h;
+			ID_ref h;
 			Point<Pixel> position;
 			Size<float> scaling, rotation;
 		} BMP;
 		struct {
-			Handle h;
+			ID_ref h;
 			ALLEGRO_COLOR col;
 			Point<Pixel> a, b, c;
 			float thickness;
 		} PRIMITIVE;
 		struct {
-			Handle h;
+			ID_ref h;
 			ALLEGRO_COLOR col;
 			Point<Pixel> position;
 		} TEXT;
@@ -31,13 +31,13 @@ namespace expos {
 
 	class Window : public MessageReciever {
 	private:
-		Handle h;
+		ID id;
 		DrawListEntry drawList[DRAWLISTSIZE];
 		ALLEGRO_THREAD *thread;
 		ALLEGRO_MUTEX *mutex;
 		int frame = 0;
 	public:
-		Window(Handle h, ContentFile*, ALLEGRO_EVENT_QUEUE*);
+		Window(ID id, ContentFile*, ALLEGRO_EVENT_QUEUE*);
 		~Window();
 
 		void open();
@@ -48,7 +48,7 @@ namespace expos {
 		DrawListEntry *lockDraw();
 		void unlockDraw();
 
-		Handle getHandle() { return h; }
+		ID getID() { return id; }
 
 	};
 

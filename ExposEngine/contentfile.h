@@ -225,7 +225,7 @@ public:
 		return contentFiles.end();
 	}
 
-	int getValueCount() {
+	size_t getValueCount() {
 		return values.size();
 	}
 };

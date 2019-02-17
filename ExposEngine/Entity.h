@@ -51,9 +51,9 @@ namespace expos {
 	};
 
 	struct ActorAnimationSet {
-		Handle standing[4];
-		Handle walking[4];
-		Handle talking[4];
+		ID standing[4];
+		ID walking[4];
+		ID talking[4];
 	};
 	
 	enum ACTORSTATE {
@@ -66,15 +66,13 @@ namespace expos {
 	private:
 		Inventory inventory;
 		std::vector<ActorAnimationSet> animationSets;
-		Handle dialogue;
+		ID dialogue;
 		ACTORSTATE state;
 	public:
 	};
 
 	class EntityManager {
 	private:
-		HandleKeeper<Actor, H_ACTOR, 50> actors;
-		HandleKeeper<Item, H_ITEM, 50> items;
 	public:
 
 	};
