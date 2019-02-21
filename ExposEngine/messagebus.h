@@ -7,7 +7,8 @@ namespace expos {
 
 	enum MESSAGETYPE {
 		MESSAGE_DISPLAYEVENT,
-		MESSAGE_WINDOW_LOADBITMAP
+		MESSAGE_WINDOW_LOADBITMAP,
+		REQUEST_TEXT_SIZE
 	};
 
 constexpr auto RECIEVER_GAME = 0x01;
@@ -16,22 +17,35 @@ constexpr auto RECIEVER_DISPLAY = 0x04;
 constexpr auto  RECIEVER_AUDIO = 0x08;
 constexpr auto  RECIEVER_LOGIC = 0x10;
 constexpr auto  RECIEVER_SCRIPT = 0x20;
-
+	
+	union MessageData {
+		struct {
+			uint32_t val1, val2, val3, val4;
+		} general;
+		struct {
+			ID_ref window, bitmap;
+			MemfileInfo m;
+		} window;
+		struct {
+			ID_ref font, text;
+		} font;
+		struct {
+			Point<Pixel> pos;
+			Size<Pixel> size;
+		} position;
+	};
 
 
 	struct Message {
-		union {
-			struct {
-				uint32_t val1, val2, val3, val4;
-			} general;
-			struct {
-				ID_ref window, bitmap;
-				MemfileInfo m;
-			} window;
-		} data;
+		MessageData data;
 		Message *next;
 		MESSAGETYPE type;
 		uint8_t recievers;
+	};
+
+	struct Answer {
+		MessageData data;
+		bool success;
 	};
 
 	class MessageReciever {
@@ -39,7 +53,10 @@ constexpr auto  RECIEVER_SCRIPT = 0x20;
 		uint8_t recieving;
 	public:
 		//returns true if the event was consumed and shouldn't be propagated further
-		virtual bool recieve(Message*) = 0;
+		virtual bool recieve(const Message&) = 0;
+		
+		//returns true if the message was answered (this can be either success or failure)
+		virtual bool answerRequest(const Message&, Answer*) = 0;
 
 		uint8_t getRecieving() { return recieving; }
 
@@ -47,7 +64,7 @@ constexpr auto  RECIEVER_SCRIPT = 0x20;
 
 	class MessageBus {
 	private:
-		ALLEGRO_MUTEX * mutexMQueue, *mutexRecievers;
+		ALLEGRO_MUTEX * mutexMQueue, *mutexRecievers, *mutexRequest;
 		static constexpr size_t MAXMESSAGECOUNT = 64;
 		Message * messages;
 
@@ -67,6 +84,7 @@ constexpr auto  RECIEVER_SCRIPT = 0x20;
 		void pushMessage(Message*);
 
 		void handleMessages();
+		bool sendRequest(const Message&, Answer *);
 
 
 		bool isEmpty() { return first == nullptr; }

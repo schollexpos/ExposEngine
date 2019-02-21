@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "packfile.h"
+#include "helper.h"
 
 namespace expos {
 
@@ -11,13 +12,28 @@ namespace expos {
 	const char *PACKFILE_MAGICENDFILENAME = "!LISTEND._EE";
 
 	Packfile::Packfile() {
-		files.push_back({ PACKFILE_MAGICENDFILENAME , nullptr, 0x00, 0x00 });
+		files.push_back({ {"", PACKFILE_MAGICENDFILENAME} , nullptr, 0x00, 0x00 });
 	}
 
 	Packfile::~Packfile() {
 		if (content != nullptr) {
 			delete[] content;
 		}
+	}
+
+	Filename Packfile::getFilename(const std::string& fullFilename) {
+		ALLEGRO_PATH *path = al_create_path(fullFilename.c_str());
+
+		Filename filename;
+
+		filename.filename = al_get_path_filename(path);
+		for (int i = 0; i < al_get_path_num_components(path); i++) 
+			filename.path += std::string(al_get_path_component(path, i)) + "/";
+
+		al_destroy_path(path);
+
+		std::cout << "Filename: " << fullFilename << " -> \"" << filename.path << "\" \"" << filename.filename << "\"" << std::endl;
+		return filename;
 	}
 
 	void Packfile::read(const std::string& inputfile) {
@@ -37,16 +53,18 @@ namespace expos {
 
 		while (true) {
 			uint8_t filenameLen = in.get();
-			std::string filename;
+			std::string fullFilename;
 			uint64_t offset, size;
-			filename.resize(filenameLen);
-			in.read(&filename[0], filenameLen);
+			fullFilename.resize(filenameLen);
+			in.read(&fullFilename[0], filenameLen);
 			in.read((char*)&offset, 8);
 			in.read((char*)&size, 8);
 
-			files.push_back({ filename, nullptr, offset, size });
+			Filename filename = getFilename(fullFilename);
+			files.push_back({filename, nullptr, offset, size });
 
-			if (filename == PACKFILE_MAGICENDFILENAME) break;
+
+			if (filename.filename == PACKFILE_MAGICENDFILENAME) break;
 		}
 
 		uint64_t len = files.back().offset;
@@ -63,10 +81,10 @@ namespace expos {
 		out.write("EPF", 3);
 		out.put(PACKFILE_VERSION);
 		for (PackfileFile f : files) {
-			out.put((size_t) f.name.size());
-			out.write(f.name.c_str(), f.name.size());
-			out.write((char*) &f.offset, 8);
-			out.write((char*)&f.size, 8);
+			out.put((size_t) f.filename.getFull().length());
+			out.write(f.filename.getFull().c_str(), f.filename.getFull().length());
+			out.write((char*) &f.offset, sizeof(f.offset));
+			out.write((char*) &f.size, sizeof(f.size));
 		}
 
 		out.write((char*) content, usedContentSize);
@@ -76,12 +94,15 @@ namespace expos {
 
 	void Packfile::extract(const std::string& foldername) {
 		for (size_t i = 0; i < files.size() - 1;i++) {
-			std::ofstream out(foldername + files[i].name, std::ios::out | std::ios::binary);
+			al_make_directory((foldername + files[i].filename.path).c_str());
+
+			std::ofstream out(foldername + files[i].filename.path + files[i].filename.filename, std::ios::out | std::ios::binary);
 			out.write((char*)content + files[i].offset, files[i].size);
 		}
 	}
 
 	void Packfile::addFile(const std::string& inputfile, const std::string& pfFilename) {
+		std::cout << "Packfile::addFile(" << inputfile << ", " << pfFilename << ")" << std::endl;
 		std::ifstream in(inputfile, std::ios::in | std::ios::binary);
 
 		if (in) {
@@ -94,7 +115,9 @@ namespace expos {
 			usedContentSize += fileSize;
 
 			in.seekg(0, std::ios::beg);
-			PackfileFile file = {pfFilename, (char*)content+fileOffset, fileOffset, fileSize};
+
+			Filename filename = getFilename(pfFilename);
+			PackfileFile file = {filename, (char*)content+fileOffset, fileOffset, fileSize};
 			files.insert(files.end() - 1, file);
 
 			in.read(((char*) content + fileOffset), fileSize);
@@ -103,6 +126,27 @@ namespace expos {
 
 			files.back().offset = fileOffset + fileSize;
 		}
+	}
+
+	void Packfile::addFolder(const std::string& inputfolder, const std::string& pfFoldername) {
+		ALLEGRO_FS_ENTRY *folder = al_create_fs_entry(inputfolder.c_str());
+
+		if (al_fs_entry_exists(folder) && al_open_directory(folder)) {
+			ALLEGRO_FS_ENTRY *file = nullptr;
+			while (file = al_read_directory(folder)) {
+
+				Filename fn = this->getFilename(al_get_fs_entry_name(file));
+				fn.path = pfFoldername;
+
+				this->addFile(al_get_fs_entry_name(file), fn.getFull());
+
+				al_destroy_fs_entry(file);
+			}
+
+			al_close_directory(folder);
+		}
+
+		al_destroy_fs_entry(folder);
 	}
 	
 	void Packfile::resize(size_t size) {

@@ -1,7 +1,11 @@
 #pragma once
 #include <cstdint>
 #include <cassert>
-#include "stdafx.h" 
+#include <sstream>
+#include "stdafx.h"
+#include <allegro5/allegro.h>
+
+
 class ContentFile;
 namespace expos {
 
@@ -47,6 +51,9 @@ namespace expos {
 		DIR_DOWN
 	};
 
+	std::vector<std::string> explode(const std::string& str, char delimiter);
+	std::string implode(const std::vector <std::string>& vec, char delimiter, int start = 0);
+
 	enum IDTYPE : std::uint16_t {
 		ID_INVALID = 0x0000,
 		ID_STRING = 0x0001,
@@ -72,6 +79,8 @@ namespace expos {
 		ID_SCRIPT = 0x2000,
 
 		ID_GUIPANEL = 0x3000,
+		ID_GUILABEL = 0x3001,
+		ID_GUIBUTTON = 0x3002,
 
 		ID_ACTOR = 0x4000,
 		ID_ITEM = 0x4000,
@@ -100,16 +109,49 @@ namespace expos {
 		} part;
 	};
 
+	/*
+	class Semaphore {
+	private:
+		int n;
+		ALLEGRO_MUTEX *mutex;
+		ALLEGRO_COND *blocked;
+	public:
+		Semaphore(int n) : n(n), mutex(al_create_mutex()), blocked(al_create_cond()) {}
+
+		~Semaphore() {
+			al_destroy_mutex(mutex);
+			al_destroy_cond(blocked);
+		}
+
+		void wait() {
+			al_lock_mutex(mutex);
+			while (n == 0) {
+				al_wait_cond(blocked, mutex);
+			}
+			n--;
+			al_unlock_mutex(mutex);
+		}
+
+		void signal() {
+			al_lock_mutex(mutex);
+			n++;
+			al_signal_cond(blocked);
+			al_unlock_mutex(mutex);
+		}
+	};*/
+
 	class ID {
 	private: 
 		ID_ref val;
 		static std::map<IDTYPE, IDKey> used;
+		static ALLEGRO_MUTEX *mutex;
 	public:
 		ID() {}
 
 		ID(IDTYPE t) {
 			this->val.part.t = t;
 
+			al_lock_mutex(mutex);
 			auto it = used.find(t);
 			if (it == used.end()) {
 				used.insert(std::pair<IDTYPE, IDKey>(t, (IDKey)0));
@@ -118,6 +160,7 @@ namespace expos {
 			else {
 				this->val.part.v = it->second++;
 			}
+			al_unlock_mutex(mutex);
 		}
 
 		ID(const ID& id) {
@@ -131,6 +174,9 @@ namespace expos {
 		ID_ref _ref() {
 			return this->val;
 		}
+
+		static void create_mutex() { mutex = al_create_mutex(); }
+		static void destroy_mutex() { al_destroy_mutex(mutex); }
 
 		ID(const std::string& str) : ID(getID(str)) {}
 	};

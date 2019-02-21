@@ -10,6 +10,8 @@ namespace expos {
 		al_install_mouse();
 		al_install_joystick();
 		al_init_primitives_addon();
+		
+		ID::create_mutex();
 
 		queue = al_create_event_queue();
 
@@ -25,6 +27,8 @@ namespace expos {
 
 		al_destroy_event_queue(queue);
 		al_destroy_timer(logicTimer);
+
+		ID::destroy_mutex();
 	}
 
 	void *updateLoop(ALLEGRO_THREAD *thread, void *arg) {
@@ -79,16 +83,20 @@ namespace expos {
 				break;*/
 			case ALLEGRO_EVENT_TIMER:
 				if (ev.timer.source == logicTimer && al_get_timer_count(logicTimer) >= 2) {
-					auto *list = mainWindow->lockDraw();
-					list[0].PRIMITIVE.h = ID(ID_PLINE)._ref();
-					list[0].PRIMITIVE.a = { 50, 50 };
-					list[0].PRIMITIVE.b = { 500, 530 };
-					list[0].PRIMITIVE.col = al_map_rgb(255, 0, 255);
-					list[0].PRIMITIVE.thickness = 3.2;
+					DrawList *drawList = mainWindow->getDrawList();
+					drawlist::List *list = drawList->getUpdateList();
 
-					list[1].PRIMITIVE.h = ID(ID_INVALID)._ref();
+					list->startProduction();
 
-					mainWindow->unlockDraw();
+					list->get()->primitive.id = ID(ID_PLINE)._ref();
+					list->get()->primitive.a = { 50, 50 };
+					list->get()->primitive.b = { 500, 530 };
+					list->get()->primitive.col = al_map_rgb(255, 0, 255);
+					list->get()->primitive.thickness = 3.2;
+
+					list->productionFinished();
+
+					drawList->ready(list);
 					al_set_timer_count(this->logicTimer, 0);
 					break;
 				}

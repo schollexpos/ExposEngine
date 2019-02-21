@@ -57,6 +57,7 @@ namespace expos {
 	}*/
 
 	std::map<IDTYPE, IDKey> ID::used;
+	ALLEGRO_MUTEX *ID::mutex;
 
 	void registerID(const std::string& id, ID h) {
 		idMap[id] = h;
@@ -73,4 +74,28 @@ namespace expos {
 
 		return idMap.at(id);
 	}
+
+	std::vector<std::string> explode(const std::string& str, char delimiter) {
+		std::vector<std::string> tokens;
+		std::stringstream tokenStream(str);
+		std::string tempStr;
+
+		while (std::getline(tokenStream, tempStr, delimiter))
+			tokens.push_back(tempStr);
+
+		return tokens;
+	}
+
+	std::string implode(const std::vector <std::string>& vec, char delimiter, int start) {
+		std::string str;
+		for (size_t i = start; i != vec.size(); i++) {
+			if (i != start && delimiter != '\0') {
+				str += (delimiter);
+			}
+			str += vec[i];
+		}
+		return str;
+	}
 }
+
+

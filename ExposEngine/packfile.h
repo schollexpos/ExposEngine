@@ -4,8 +4,16 @@
 
 namespace expos {
 
+	struct Filename {
+		std::string path, filename;
+
+		std::string getFull() {
+			return path + filename;
+		}
+	};
+
 	struct PackfileFile {
-		std::string name;
+		Filename filename;
 		void *content;
 		uint64_t offset, size;
 	};
@@ -36,6 +44,7 @@ namespace expos {
 	class Packfile {
 	private:
 		std::vector<PackfileFile> files;
+
 		void *content = nullptr;
 		size_t contentSize = 0, usedContentSize = 0;
 
@@ -44,6 +53,8 @@ namespace expos {
 				f.content = (char*)content + f.offset;
 			}
 		}
+
+		static Filename getFilename(const std::string& fullFilename);
 	public:
 		Packfile();
 		~Packfile();
@@ -54,6 +65,7 @@ namespace expos {
 		void extract(const std::string&);
 
 		void addFile(const std::string&, const std::string&);
+		void addFolder(const std::string&, const std::string&);
 
 		void resize(size_t);
 

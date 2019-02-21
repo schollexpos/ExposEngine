@@ -90,6 +90,7 @@
     <Allegro_AddonMemfile>true</Allegro_AddonMemfile>
     <Allegro_AddonFont>true</Allegro_AddonFont>
     <Allegro_AddonImage>true</Allegro_AddonImage>
+    <Allegro_LibraryType>DynamicDebug</Allegro_LibraryType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -164,6 +165,7 @@
   <ItemGroup>
     <ClInclude Include="animation.h" />
     <ClInclude Include="contentfile.h" />
+    <ClInclude Include="draw.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="gui.h" />

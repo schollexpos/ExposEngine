@@ -16,12 +16,13 @@
 *	In ContentFiles werden die meisten Spieldateien gespeichert. In einer Datei auf der Festplatte können
 *	jedoch auch mehrere ContentFiles enthalten sein (z.b. charakters.txt enthält mehrere CHARAKTER-ContentFiles.
 *	ContentFiles haben einen Ähnlichen Aufbau wie JSON-Dateien:
-*	STRUCTNAME {
+*	#STRUCTNAME {
 *		name:value:
 *		name:value:
-*		name[]: STRUCTNAME {
+*		name: #STRUCTNAME {
 *			name: value;
 *		};
+*		name: ["Object", "Bla2", "Bla"]; 
 *	}
 *	Wie man sieht, können ContentFiles auch "SubcontentFiles" enthalten.
 *   Die Variablen:
@@ -38,10 +39,27 @@ ContentFile *getErrorCF();
 
 class ContentFile {
 private:
+	ContentFile *parent = nullptr;
 	std::string type = "";
 	std::map <std::string, std::string> values;
 	std::map <std::string, ContentFile*> contentFiles;
 	bool good = false;
+
+
+	bool _getValRec(const std::string& var, std::string *ret) {
+		auto it = values.find(var);
+		if (it != values.end()) {
+			*ret = it->second;
+			return true;
+		}
+		else if (parent == nullptr) {
+			return false;
+		}
+		else {
+			return parent->_getValRec(var, ret);
+		}
+	}
+
 public:
 	ContentFile(ALLEGRO_FILE*);
 
@@ -56,6 +74,8 @@ public:
 		*	Die Subcontentfiles werden auch kopiert. Die Kopie kann also problemlos selbst zerstört werden und muss dies auch.
 		*/
 		ContentFile *cf = new ContentFile(type);
+
+		cf->parent = this->parent;
 
 		for (auto it = values.begin(); it != values.end(); it++) {
 			cf->setValue(it->first, it->second);
@@ -74,29 +94,12 @@ public:
 
 	void print();
 
-	std::string getValue(const std::string& var) {
+	std::string getValue(const std::string& var) const {
 		/*! \brief Gibt den Wert des Feldes var zurück.
 		*
-		*	Dies geschieht ohne Fehlerprüfung, über den []-Operator der std::map.
-		*	Unbekannte Elemente produzieren keine Exception, sondern werden mit einem Standardwert (leerer String) erstellt.
-		*	Funktionen, die den String jedoch in bestimmter Weise benutzen wollen können deswegen jedoch sehr wohl abstürzen.
+		*	Unbekannte Elemente produzieren eine Exception
 		*/
-		assert(this);
-		return values[var];
-	}
-
-	int getInt(const std::string& var) {
-		assert(this);
-		return atoi(values[var].c_str());
-	}
-
-	int getInt(const std::string& var, int notvalue) {
-		try {
-			return atoi(values.at(var).c_str());
-		}
-		catch (std::out_of_range) {
-			return notvalue;
-		}
+		return values.at(var);
 	}
 
 	std::string getValue(const std::string& var, const std::string& notvalue) const {
@@ -104,17 +107,35 @@ public:
 		*
 		*	Wenn var nicht existiert wird notvalue zurückgegeben.
 		*/
-		std::string ret;
-		try {
-			ret = values.at(var);
+		auto it = values.find(var);
+		if (it != values.end()) {
+			return it->second;
 		}
-		catch (std::out_of_range) {
-			return notvalue;
+		else {
+			throw(std::out_of_range("ContentFile::getValue"));
 		}
-		return ret;
 	}
 
-	ContentFile *getCF(const std::string& id, bool exception = false) /*nicht const!*/ {
+	std::string getValueRec(const std::string& var) {
+		/*! \brief Gibt den Wert des Feldes var zurück, bei nicht-existenz fragt es seinen parent etc.
+		*
+		* Es wird geprüft, ob der Wert in diesem CF existiert, und wenn ja zurückgegeben.
+		* Wenn er nicht existiert, wird rekursiv die getValueRecursive-Funktion des Eltern-ContentFiles
+		* aufgerufen, bis dieses null ist. In diesem Fall wird std::out_of_range geworfenn */
+		std::string str;
+		if (this->_getValRec(var, &str)) return str;
+		throw(std::out_of_range("ContentFile::getValueRecursive: Tried to access non-existent field"));
+	}
+
+	std::string getValueRec(const std::string& var, const std::string& notvalue) {
+		std::string str;
+		if (this->_getValRec(var, &str)) return str;
+		return notvalue;
+	}
+
+	
+
+	ContentFile *getCF(const std::string& id) const {
 		/*! \brief Liefert das Subcontentfile id zurück.
 		*
 		*	Wenn dieses nicht existiert, wird das Parentcontentfile zurückgegeben. Beispiel:
@@ -122,8 +143,7 @@ public:
 		*		parent->setValue(parent->getCF(„child“)->getValue(„testvar“, „error“));
 		*	parent->getCF(„child“) liefert hier wieder parent, da das Subcontentfile nicht existiert.
 		*/
-		if (exception) assert(contentFiles[id]);
-		return contentFiles[id];
+		return contentFiles.at(id);
 	}
 
 	ContentFile *getCFSafe(const std::string& id) const {
@@ -165,6 +185,7 @@ public:
 			std::cerr << "[WARN] ContentFile::setCF: " << var << " = nullptr" << std::endl;
 		}
 		contentFiles[var] = cf;
+		cf->parent = this;
 	}
 
 	void deleteValue(const std::string& str) {

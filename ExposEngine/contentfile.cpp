@@ -233,6 +233,7 @@ void ContentFile::load(const std::string& data, bool isGood) {
 					rekData += data[i];
 				}
 				contentFiles[name] = new ContentFile(rekData, true);
+				contentFiles[name]->parent = this;
 				if (data[i + 1] == ';') {
 					i++;
 				}

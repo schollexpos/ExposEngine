@@ -2,7 +2,7 @@
 #include "messagebus.h"
 
 namespace expos {
-	MessageBus::MessageBus() : mutexMQueue(al_create_mutex()), mutexRecievers(al_create_mutex()), messages(new Message[MAXMESSAGECOUNT]) {
+	MessageBus::MessageBus() : mutexMQueue(al_create_mutex()), mutexRecievers(al_create_mutex()), mutexRequest(al_create_mutex()), messages(new Message[MAXMESSAGECOUNT]) {
 		for (size_t i = 0; i < MAXMESSAGECOUNT-1;i++) {
 			messages[i].next = &messages[i + 1];
 			if (i == 0) this->open = &messages[i];
@@ -10,6 +10,9 @@ namespace expos {
 	}
 
 	MessageBus::~MessageBus() {
+		al_destroy_mutex(mutexMQueue);
+		al_destroy_mutex(mutexRecievers);
+		al_destroy_mutex(mutexRequest);
 		delete[] messages;
 	}
 
@@ -43,7 +46,7 @@ namespace expos {
 			for (size_t i = 0; i < messageRecievers.size();i++) {
 				if (messageRecievers[i]->getRecieving() & m->recievers) {
 					
-					if (messageRecievers[i]->recieve(m) || i == messageRecievers.size() - 1) { 
+					if (messageRecievers[i]->recieve(*m) || i == messageRecievers.size() - 1) { 
 						al_lock_mutex(mutexMQueue);
 						oldOpen = open;
 						open = m;
@@ -55,6 +58,22 @@ namespace expos {
 			}
 
 		}
+	}
+
+	bool MessageBus::sendRequest(const Message &m, Answer *a) {
+		al_lock_mutex(mutexRequest);
+		a->success = false;
+		for (MessageReciever *r : messageRecievers) {
+			if (r->getRecieving() & m.recievers) {
+				if (r->answerRequest(m, a)) {
+					al_unlock_mutex(mutexRequest);
+					return true;
+				}
+			}
+		}
+
+		al_unlock_mutex(mutexRequest);
+		return true;
 	}
 
 
