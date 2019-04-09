@@ -167,6 +167,7 @@
     <ClInclude Include="contentfile.h" />
     <ClInclude Include="draw.h" />
     <ClInclude Include="Entity.h" />
+    <ClInclude Include="filemanager.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="gui.h" />
     <ClInclude Include="helper.h" />
@@ -174,6 +175,7 @@
     <ClInclude Include="packfile.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="stringmanager.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="window.h" />
   </ItemGroup>
@@ -182,6 +184,7 @@
     <ClCompile Include="contentfile.cpp" />
     <ClCompile Include="entity.cpp" />
     <ClCompile Include="ExposEngine.cpp" />
+    <ClCompile Include="filemanager.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="gui.cpp" />
     <ClCompile Include="helper.cpp" />
@@ -193,6 +196,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="stringmanager.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>

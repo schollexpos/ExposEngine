@@ -61,9 +61,7 @@ namespace expos {
 			}
 		};
 
-		Point<Pixel> parsePoint(Size<Pixel> parent, const std::string& x, const std::string& y) {
-			return { Coordinate::parse(x, parent, true), Coordinate::parse(y, parent, false)};
-		}
+		Point<Pixel> parsePoint(Size<Pixel> parent, const std::string& x, const std::string& y);
 
 		/* Label Element 
 		* Displays a small text label in other elements, and on its self

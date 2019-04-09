@@ -1,306 +1,277 @@
 #include "stdafx.h"
 #include "contentfile.h"
 
-ContentFile *getErrorCF() {
-	static ContentFile error("ERROR");
-	return &error;
+namespace contentfile {
+
+#define NONPRINTABLE " \t\n"
+
+	std::ostream &printTabs(std::ostream& stream, int t) {
+		for(int i = 0; i<t; i++) {
+			stream << "\t";
+		}
+		return stream;
+	}
+
+	enum CONT {
+		CURLYB = 0,
+		SQUAREB = 1,
+		QUOTE = 2,
+		CONTEND
+	};
+
+	enum SPLITTYPE {
+		ST_ARRAY,
+		ST_KEYVAL,
+	};
+
+
+	Object CFather::empty("#ERROR{}");
+
+	static std::vector<std::string> split(const std::string& data, SPLITTYPE st) {
+		std::cout << "Split: \"" << data << "\"" << std::endl;
+		std::vector<std::string> vec;
+		std::string cur = "";
+
+
+
+		int open[CONTEND] = {0,0,0};
+		bool keyvalPos = false; //false = key, true = val
+		bool finished = false;
+		for(size_t pos = 0; !finished && pos < data.length(); pos++) {
+			bool noAdd = false;
+			bool curFinished = false;
+
+			switch(data[pos]) {
+				case '{':
+					open[CURLYB]++;
+					break;
+				case '}':
+					open[CURLYB]--;
+					break;
+				case '[':
+					open[SQUAREB]++;
+					break;
+				case ']':
+					open[SQUAREB]--;
+					break;
+				case '\\':
+					if(!open[CURLYB] && !open[SQUAREB] && (pos> 0 ? data[pos-1] != '\\' : true)) {
+						noAdd = true;
+					}
+					break;
+				case '"':
+					if(!open[CURLYB] && !open[SQUAREB] && (pos> 0 ? data[pos-1] != '\\' : true)) {
+						open[QUOTE] = !open[QUOTE];
+						noAdd = true;
+					}
+					break;
+				case ' ':
+				case '\t':
+					if(!open[CURLYB] && !open[SQUAREB] && !open[QUOTE]) noAdd = true;
+					break;
+				case '\n':
+					noAdd = true;
+					break;
+			}
+
+
+			switch(st) {
+				case ST_ARRAY:
+					if(!open[CURLYB] && !open[SQUAREB] && !open[QUOTE] && (data[pos] == ',' || pos == data.size()-1)) {
+						noAdd = (data[pos] == ',' || data[pos] == '"');
+						curFinished = true;
+					}
+					break;
+				case ST_KEYVAL:
+					if(!open[CURLYB] && !open[SQUAREB]  && !open[QUOTE]) {
+						if(keyvalPos == false && data[pos] == ':') {
+							keyvalPos = true;
+							noAdd = true;
+							curFinished = true;
+						} else if(keyvalPos == true && (data[pos] == ';' || pos == data.size()-1)) {
+							noAdd = (data[pos] == ';' || data[pos] == '"');
+							curFinished = true;
+							keyvalPos = false;
+						}
+					}
+					break;
+			}
+
+			if(!noAdd) {
+				cur += data[pos];
+				noAdd = false;
+			}
+
+			if(curFinished) {
+				vec.push_back(cur);
+				cur = "";
+				curFinished = false;
+			}
+		}
+
+		return vec;
+	}
+
+	static TYPE identify(const std::string& value) {
+		switch(value[0]) {
+			case '[':
+				return ARRAY;
+			case '{':
+			case '#':
+				return OBJECT;
+			case ']':
+			case '}':
+			case ',':
+				return ERROR;
+			default:
+				return VALUE;
+		}
+	}
+
+	std::string makeVal(const std::string& data) {
+		size_t startPos = data.find_first_not_of(NONPRINTABLE);
+		size_t endPos = data.find_last_not_of(NONPRINTABLE);
+		if(data[startPos] == '"') {
+			return data.substr(1, endPos-startPos+1);
+		} else {
+			return data;
+		}
+	}
+
+	Array::Array(const std::string& data) {
+		size_t startPos = data.find_first_not_of(NONPRINTABLE);
+		size_t endPos = data.find_last_not_of(NONPRINTABLE);
+		std::vector<std::string> elements = split(data.substr(startPos+1, endPos-(startPos+1)), ST_ARRAY);
+
+		for(const std::string& str : elements) {
+			TYPE t = identify(str);
+			switch(t) {
+				case ARRAY:
+					this->push_back(new Array(str));
+					break;
+				case OBJECT:
+					this->push_back(new Object(str));
+					break;
+				case VALUE:
+					this->push_back(makeVal(str));
+					break;
+			}
+		}
+	}
+
+	void Array::saveToFile(std::fstream &file) {
+		file << "[";
+
+		for(auto it = objects.begin(); it != objects.end(); it++) {
+			it->second->saveToFile(file);
+			file << ",";
+		}
+		for(auto it = arrays.begin(); it != arrays.end(); it++) {
+			it->second->saveToFile(file);
+			file << ";";
+		}
+		for(auto it = values.begin(); it != values.end(); it++) {
+			file << "\"" << it->second << "\",";
+		}
+
+		file << "]";
+	}
+
+	Object::Object(const std::string& data, Object *parent) : parent(parent) {
+		size_t startpos = data.find_first_not_of(NONPRINTABLE);
+		size_t endpos = data.find_last_not_of(NONPRINTABLE);
+		if(data[startpos] == '#') {
+			size_t oldsp = startpos;
+			startpos = data.find_first_of('{');
+			type = data.substr(oldsp+1, startpos-(oldsp+1));
+
+			std::cout << oldsp << "-" << startpos << " -> \"" << type << "\"" << std::endl;
+		} else if(data[startpos] == '{') {
+			type = "ANONYMOUS";
+		}
+
+		std::vector<std::string> vec = split(data.substr(startpos+1, endpos-(startpos+1)), ST_KEYVAL);
+
+		for(int i = 0; i < vec.size(); i++) {
+			std::cout << "vec[" << i << "] = \"" << vec[i] << "\"" << std::endl;
+		}
+
+		for(size_t i = 0; i+1 < vec.size();i+=2) {
+			TYPE t = identify(vec[i+1]);
+
+			switch(t) {
+				case ARRAY:
+					this->setArray(vec[i], new Array(vec[i+1]));
+					break;
+				case OBJECT:
+					this->setObject(vec[i], new Object(vec[i+1], this));
+					break;
+				case VALUE:
+					this->setValue(vec[i], makeVal(vec[i+1]));
+					break;
+			}
+		}
+	}
+
+	const std::string& Object::getValRecursive(const std::string& key) {
+		if(values.find(key) == values.end()) {
+			if(this->parent) {
+				return parent->getValRecursive(key);
+			} else {
+				throw std::out_of_range("Object::getValRecursive");
+			}
+		} else {
+			return values.at(key);
+		}
+	}
+
+	const std::string& Object::getValRecursive(const std::string& key, const std::string& notvalue) {
+		if(values.find(key) == values.end()) {
+			if(this->parent) {
+				return parent->getValRecursive(key);
+			} else {
+				return notvalue;
+			}
+		} else {
+			return values.at(key);
+		}
+	}
+
+	void Object::saveToFile(std::fstream &file) {
+		if(type != "ANONYMOUS") {
+			file << "#" << type;
+		}
+		file << "{" << std::endl;
+
+		for(auto it = objects.begin(); it != objects.end(); it++) {
+			file << it->first << ":";
+			it->second->saveToFile(file);
+			file << ";" << std::endl;
+		}
+		for(auto it = arrays.begin(); it != arrays.end(); it++) {
+			file << it->first << ":";
+			it->second->saveToFile(file);
+			file << ";" << std::endl;
+		}
+		for(auto it = values.begin(); it != values.end(); it++) {
+			file << it->first << ":\"" << it->second << "\";" << std::endl;
+		}
+
+		file << "}";
+	}
 }
 
-ContentFile::ContentFile(ALLEGRO_FILE *file) {
-	/*! \brief Lädt ein ContentFile aus einem bereits geöffneten ALLEGRO_FILE*.
-	*
-	*	In einer Datei können auch mehrere ContentFiles stecken, weswegen die Methode readContentFiles empfohlen wird.
-	*/
-	logcf << "[INFO] ContentFile::ContentFile" << std::endl;
+ContentFile *readContentFile(const std::string& filename) {
+	std::fstream file(filename, std::ios::in);
+
+	file.seekg(0, file.end);
+	auto length = file.tellg();
+	file.seekg(0, file.beg);
+
 	std::string data;
+	data.resize(length);
 
-	good = true;
-	logcf << "[INFO] Lade ContentFile aus " << file << std::endl;
-	int endklammerCount = 0;
-	do {
-		char c = al_fgetc(file);
-		if (al_feof(file)) {
-			/* Datei nicht vollständig */
-			logcf << "[WARN] " << __FILE__ << ": " << __LINE__ << ": Datei nicht vollständig!" << std::endl;
-			good = false;
-			break;
-		}
-		/* Darf niemals in data! */
-		if (c == '{') {
-			endklammerCount++;
-		}
-		if (c == '}') {
-			if (endklammerCount <= 1) {
-				break;
-			}
-			else {
-				endklammerCount--;
-			}
-		}
-		data += c;
-	} while (true);
+	file.read(&data[0], length);
 
-	bool insideString = false;
-	for (int i = 0; i < data.length(); i++) {
-		if (!IS_RIGHT_CHAR(data[i]) && !insideString) {
-			if (i == data.size() - 1) {
-				data.pop_back();
-			}
-			else {
-				data.erase(i, 1);
-				i--;
-			}
-		}
-		else if (data[i] == '"') {
-			insideString = !insideString;
-			data.erase(i, 1);
-			i--;
-		}
-		else if (data[i] == ';') {
-			insideString = false;
-		}
-	}
-	if (data[0] == ';') data = data.substr(1);
-#ifdef DEBUG
-	logcf << "[INFO] Data: \"" << data << "\"" << std::endl;
-#endif
-
-	this->load(data, good);
-	this->print();
-
-	logcf << "[INFO] ContentFile::ContentFile finished" << std::endl;
-}
-
-ContentFile::ContentFile(const std::string& data, bool isGood) {
-	/*! \brief Ruft intern ContentFile::load auf.
-	*
-	*	IsGood muss true sein, die Variable ist nur dafür da, damit keine Verwechslung mit ContentFile(std::string) stattfinden kann.
-	*/
-	this->load(data, isGood);
-}
-
-ContentFile::ContentFile(const std::string& id) {
-	/*!	Erstellt ein leeres ContentFile, bei dem „ID“ den Typ angibt.
-	*
-	*	good wird automatisch gesetzt.
-	*/
-	logcf << "[INFO] ContentFile::ContentFile " << id << " (+finished)" << std::endl;
-	type = id;
-	good = true;
-}
-
-ContentFile::~ContentFile() {
-	/*! \brief Zerstört intern die anderen Sub-ContentFiles, die das Parentcontentfile hat.
-	*
-	*/
-	for (auto it = contentFiles.begin(); it != contentFiles.end(); it++) {
-		delete it->second;
-	}
-}
-
-static void printTabs(std::fstream& file, int i) {
-	for (int zeyen = 0; zeyen != i; zeyen++) { file << "\t"; }
-}
-
-void saveContentFileValue(std::fstream& file, std::map<std::string, std::string>::iterator it, int tabs = 0) {
-	/*! \brief Wird intern genutzt um die Werte eines ContentFiles in eine Datei zu schreiben.
-	*
-	*/
-	printTabs(file, tabs);
-	bool containsS = (it->second.find_first_of(' ') != std::string::npos);
-
-	if (containsS) {
-		file << it->first << ": \"" << it->second << "\";" << std::endl;
-	}
-	else {
-		file << it->first << ": " << it->second << ";" << std::endl;
-	}
-
-}
-
-void saveContentFileTo(ContentFile *cf, std::fstream& file, int tabs) {
-	/*! \brief Speichert ein ganzes ContentFile in eine bereits offene Datei.
-	*
-	*/
-	printTabs(file, tabs);
-	file << cf->getType() << " {" << std::endl;
-
-	for (auto it = cf->getVBeginIterator(); it != cf->getVEndIterator(); it++) {
-		saveContentFileValue(file, it, tabs + 1);
-	}
-
-	for (auto it = cf->getCFBeginIterator(); it != cf->getCFEndIterator(); it++) {
-		if (it->second != nullptr) {
-			printTabs(file, tabs + 1);
-			file << it->first << "[]:" << std::endl;
-			saveContentFileTo(it->second, file, tabs + 2);
-		}
-	}
-
-	printTabs(file, tabs);
-	file << "}" << std::endl;
-}
-
-void ContentFile::saveToFile(const std::string& filename, bool trunc) {
-	/*! \brief Speichert das ContentFile in die Datei filename
-	*
-	* Öffnet die Datei filename, wenn truncate true ist, wird diese beim Öffnen geleert. Ruft intern saveContentFileTo auf.
-	*/
-	std::fstream file(filename, trunc ? std::ios::out | std::ios::trunc : std::ios::out);
-
-	saveContentFileTo(this, file, 0);
-
-	file.close();
-}
-
-void ContentFile::load(const std::string& data, bool isGood) {
-	/*! \brief Erstellt ein ContentFile aus dem data-String.
-	*
-	*	IsGood muss true sein, da ansonsten der Ladevorgang abgebrochen wird.
-	*/
-	good = isGood;
-
-	if (good) {
-		bool foundType = false;
-		for (int i = 0; i != data.size() && good; i++) {
-			if (!foundType) {
-				if (data[i] != '{') {
-					type += data[i];
-				}
-				else {
-					foundType = true;
-				}
-				continue;
-			}
-
-			std::string name;
-			bool rekursiv = false;
-			while (true && i != data.size()) {
-				if (data[i] == ':') {
-					i++;
-					break;
-				}
-				else if (data[i] == '[' && data[i + 1] == ']' && data[i + 2] == ':') {
-					i += 3;
-					rekursiv = true;
-					break;
-				}
-				else {
-					name += data[i];
-				}
-				i++;
-			}
-			if (i == data.size()) {
-				logcf << "[WARN] " << __FILE__ << ": " << __LINE__ << ": Datei nicht gut" << std::endl;
-				good = false;
-				break;
-			}
-
-			if (!rekursiv) {
-				std::string value;
-				while (true && i != data.size()) {
-					if (data[i] == ';') {
-						break;
-					}
-					else {
-						value += data[i];
-					}
-					i++;
-				}
-				if (i == data.size()) {
-					logcf << "[WARN] " << __FILE__ << ": " << __LINE__ << ": Datei nicht gut" << std::endl;
-					good = false;
-					break;
-				}
-				values[name] = value;
-			}
-			else {
-				std::string rekData;
-				int rekDataKC = 0;
-				for (int un = 0; i != data.size(); i++) { //SIC!
-														  /* Darf niemals in data! */
-					if (data[i] == '{') {
-						rekDataKC++;
-					}
-					if (data[i] == '}') {
-						if (rekDataKC <= 1) {
-							break;
-						}
-						else {
-							rekDataKC--;
-						}
-					}
-					rekData += data[i];
-				}
-				contentFiles[name] = new ContentFile(rekData, true);
-				contentFiles[name]->parent = this;
-				if (data[i + 1] == ';') {
-					i++;
-				}
-			}
-		}
-	}
-}
-
-void ContentFile::print() {
-	/* \brief Gibt das ContentFile in logstream aus.
-	*
-	*	Subcontentfiles werden ebenfalls mit ausgegeben.
-	*/
-	logcf << "[INFO] CF.type = " << type << std::endl;
-	for (auto it = values.begin(); it != values.end(); it++) {
-		logcf << "[INFO] value[" << it->first << "] = \"" << it->second << "\"" << std::endl;
-	}
-
-	for (auto it = contentFiles.begin(); it != contentFiles.end(); it++) {
-		logcf << "[INFO] Contentfile[" << it->first << "]: " << std::endl;
-		it->second->print();
-		logcf << "\t[INFO] Rec. finished!" << std::endl;
-	}
-	logcf << "[INFO] ContentFile::print finished!" << std::endl;
-}
-
-std::vector<ContentFile*> readContentFiles(const std::string& filename, int maxCount) {
-	/*! \brief Liest ContentFiles aus der Datei filename und speichert sie in einem Vektor.
-	*
-	*	Lädt maxCount ContentFiles aus der Datei mit dem Namen filename. Hierbei wird sichergestellt, das in dem zurückgegebenen Vector nur vollständige ContentFiles landen, nicht kompatible werden beim Start aussortiert. Die Elemente im Vector müssen später selbstständig zerstört werden. Wenn die Datei nicht geöffnet werden konnte, wird ein std::string als Exception geworfen.
-	*	== Achtung == Es gibt keine Garantie, dass maxCount Elemente im Vector sind, es wird nur garantiert, dass es weniger sind.
-	*/
-	logcf << "[INFO] readContentFiles(" << filename << ")" << std::endl;
-	std::vector<ContentFile*> files;
-	ALLEGRO_FILE *file = al_fopen(filename.c_str(), "r");
-	if (!file) {
-		logcf << "[ERR.] " << __FILE__ << ": " << __LINE__ << ": Konnte Datei nicht öffnen!" << std::endl;
-		throw std::string("Can't open file");
-		return files;
-	}
-
-	for (int i = 0; !al_feof(file) && i != maxCount; i++) {//ISSO // -1 muss ja als unendlich gelten!
-		ContentFile *daCF = new ContentFile(file);
-		if (daCF->isGood()) {
-			files.push_back(daCF);
-		}
-	}
-
-	al_fclose(file);
-	logcf << "[INFO] readContentFiles finished" << std::endl;
-	return files;
-}
-
-void compressCFComparison(ContentFile *cf, ContentFile *comp) {
-	/* Komprimiert ein Contentfile indem es es mit comp vergleicht und alle identischen
-	Werte löscht */
-	auto it = cf->getVBeginIterator();
-	while (it != cf->getVEndIterator()) {
-		if (comp->valueExists(it->first) && it->second == comp->getValue(it->first)) {
-			it = cf->deleteValue(it);
-		}
-		else {
-			it++;
-		}
-	}
-
-	for (auto tit = cf->getCFBeginIterator(); tit != cf->getCFEndIterator(); tit++) {
-		if (comp->contentFileExists(tit->first)) compressCFComparison(tit->second, comp->getCF(tit->first));
-	}
+	return new ContentFile(data);
 }

@@ -8,6 +8,7 @@ namespace expos {
 	enum MESSAGETYPE {
 		MESSAGE_DISPLAYEVENT,
 		MESSAGE_WINDOW_LOADBITMAP,
+		MESSAGE_FILEMANAGER_LOADPF,
 		REQUEST_TEXT_SIZE
 	};
 
@@ -30,6 +31,9 @@ constexpr auto  RECIEVER_SCRIPT = 0x20;
 			ID_ref font, text;
 		} font;
 		struct {
+			ID_ref filename;
+		} filemanager;
+		struct {
 			Point<Pixel> pos;
 			Size<Pixel> size;
 		} position;
@@ -48,10 +52,15 @@ constexpr auto  RECIEVER_SCRIPT = 0x20;
 		bool success;
 	};
 
+	class MessageBus;
+
 	class MessageReciever {
 	protected:
+		MessageBus *mb;
 		uint8_t recieving;
 	public:
+		MessageReciever(MessageBus *mb, uint8_t recieving);
+
 		//returns true if the event was consumed and shouldn't be propagated further
 		virtual bool recieve(const Message&) = 0;
 		
@@ -93,5 +102,6 @@ constexpr auto  RECIEVER_SCRIPT = 0x20;
 
 
 	void messageWindowLoadBitmap(Message *m, MemfileInfo info, ID window);
+	void messageFileManagerLoadPF(Message *m, ID filename);
 
 }

@@ -1,0 +1,15 @@
+{
+	languages: ["german", "english"];
+	german: {
+		str_teststring: "Der Testtext";
+	};
+	english: {
+		str_teststring: "Testing string";
+	};
+	global: {
+		str_game_version: "0.1";
+
+		str_path_packfile_global: "packfile.pf";
+		str_path_font_lemon: "data/fonts/LemonMilk.otf";
+	};
+}

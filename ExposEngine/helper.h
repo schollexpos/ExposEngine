@@ -4,9 +4,9 @@
 #include <sstream>
 #include "stdafx.h"
 #include <allegro5/allegro.h>
+#include "contentfile.h"
 
 
-class ContentFile;
 namespace expos {
 
 	class Bitmap;
@@ -107,6 +107,14 @@ namespace expos {
 			IDKey v;
 			IDTYPE t;
 		} part;
+
+		bool operator==(const ID_ref& r) const{
+			return r.v == this->v;
+		}
+
+		bool operator<(const ID_ref& r) const{
+			return r.v < this->v;
+		}
 	};
 
 	/*
@@ -171,7 +179,7 @@ namespace expos {
 			return this->val;
 		}
 
-		ID_ref _ref() {
+		ID_ref _ref() const {
 			return this->val;
 		}
 

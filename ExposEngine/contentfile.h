@@ -1,266 +1,139 @@
 #pragma once
-
-#ifndef EXPOS_CONTENTFILE_H
-#define EXPOS_CONTENTFILE_H
-#include <allegro5/allegro5.h>
-#include <string>
 #include <map>
+#include <vector>
+#include <string>
 
-#define logcf std::cout
+namespace contentfile {
+	enum TYPE {
+		VALUE,
+		OBJECT,
+		ARRAY,
+		ERROR
+	};
 
+	class Object;
+	class Array;
 
-#define IS_RIGHT_CHAR(c) (c > 32)
+	class CFather {
+	protected:
+		static Object empty;
+	public:
+	};
 
-/*! \brief ContentFiles speichern den meisten Spielcontent.
-*
-*	In ContentFiles werden die meisten Spieldateien gespeichert. In einer Datei auf der Festplatte können
-*	jedoch auch mehrere ContentFiles enthalten sein (z.b. charakters.txt enthält mehrere CHARAKTER-ContentFiles.
-*	ContentFiles haben einen Ähnlichen Aufbau wie JSON-Dateien:
-*	#STRUCTNAME {
-*		name:value:
-*		name:value:
-*		name: #STRUCTNAME {
-*			name: value;
-*		};
-*		name: ["Object", "Bla2", "Bla"]; 
-*	}
-*	Wie man sieht, können ContentFiles auch "SubcontentFiles" enthalten.
-*   Die Variablen:
-* 	std::string type - Der Typ des ContentFiles. Wird vom Autor des ContentFiles gesetzt muss also nicht zwangsläufig
-*   dem tatsächlichen Inhalt entsprechen
-*	std::map <std::string,std::string> values - Die Felder des ContentFiles
-*	std::map <std::string,ContentFile*> contentFiles - Die SubcontentFiles
-* 	bool good - gibt an ob das ContentFile vollständig und korrekt geladen wurde.
-*/
-
-class ContentFile;
-
-ContentFile *getErrorCF();
-
-class ContentFile {
-private:
-	ContentFile *parent = nullptr;
-	std::string type = "";
-	std::map <std::string, std::string> values;
-	std::map <std::string, ContentFile*> contentFiles;
-	bool good = false;
-
-
-	bool _getValRec(const std::string& var, std::string *ret) {
-		auto it = values.find(var);
-		if (it != values.end()) {
-			*ret = it->second;
-			return true;
-		}
-		else if (parent == nullptr) {
-			return false;
-		}
-		else {
-			return parent->_getValRec(var, ret);
-		}
-	}
-
-public:
-	ContentFile(ALLEGRO_FILE*);
-
-	ContentFile(const std::string&, bool);
-	ContentFile(const std::string&);
-
-	~ContentFile();
-
-	ContentFile *getMeACopyOfYou() const {
-		/*! \brief erstellt eine Kopie des ContentFiles.
-		*
-		*	Die Subcontentfiles werden auch kopiert. Die Kopie kann also problemlos selbst zerstört werden und muss dies auch.
-		*/
-		ContentFile *cf = new ContentFile(type);
-
-		cf->parent = this->parent;
-
-		for (auto it = values.begin(); it != values.end(); it++) {
-			cf->setValue(it->first, it->second);
-		}
-
-		for (auto it = contentFiles.begin(); it != contentFiles.end(); it++) {
-			cf->setCF(it->first, it->second->getMeACopyOfYou());
-		}
-		return cf;
-	}
-
-	void saveToFile(const std::string&, bool);
-	void saveToFile(ALLEGRO_FILE*);
-
-	void load(const std::string&, bool);
-
-	void print();
-
-	std::string getValue(const std::string& var) const {
-		/*! \brief Gibt den Wert des Feldes var zurück.
-		*
-		*	Unbekannte Elemente produzieren eine Exception
-		*/
-		return values.at(var);
-	}
-
-	std::string getValue(const std::string& var, const std::string& notvalue) const {
-		/*! \brief Gibt den Wert des Feldes var zurück.
-		*
-		*	Wenn var nicht existiert wird notvalue zurückgegeben.
-		*/
-		auto it = values.find(var);
-		if (it != values.end()) {
-			return it->second;
-		}
-		else {
-			throw(std::out_of_range("ContentFile::getValue"));
-		}
-	}
-
-	std::string getValueRec(const std::string& var) {
-		/*! \brief Gibt den Wert des Feldes var zurück, bei nicht-existenz fragt es seinen parent etc.
-		*
-		* Es wird geprüft, ob der Wert in diesem CF existiert, und wenn ja zurückgegeben.
-		* Wenn er nicht existiert, wird rekursiv die getValueRecursive-Funktion des Eltern-ContentFiles
-		* aufgerufen, bis dieses null ist. In diesem Fall wird std::out_of_range geworfenn */
-		std::string str;
-		if (this->_getValRec(var, &str)) return str;
-		throw(std::out_of_range("ContentFile::getValueRecursive: Tried to access non-existent field"));
-	}
-
-	std::string getValueRec(const std::string& var, const std::string& notvalue) {
-		std::string str;
-		if (this->_getValRec(var, &str)) return str;
-		return notvalue;
-	}
-
-	
-
-	ContentFile *getCF(const std::string& id) const {
-		/*! \brief Liefert das Subcontentfile id zurück.
-		*
-		*	Wenn dieses nicht existiert, wird das Parentcontentfile zurückgegeben. Beispiel:
-		*		ContentFile *parent = new ContentFile(„TEST“);
-		*		parent->setValue(parent->getCF(„child“)->getValue(„testvar“, „error“));
-		*	parent->getCF(„child“) liefert hier wieder parent, da das Subcontentfile nicht existiert.
-		*/
-		return contentFiles.at(id);
-	}
-
-	ContentFile *getCFSafe(const std::string& id) const {
-		/*! \brief Liefert das Subcontentfile id zurück. Niemals nullptr.
-		*
-		*	Wenn das Subcontentfile nicht existiert, wird ein Error-ContentFile zurückgegeben.
-		*/
-		if (contentFiles.find(id) == contentFiles.end()) {
-			return getErrorCF();
-		}
-		else {
-			return contentFiles.at(id);
-		}
-	}
-
-	void setValue(const std::string& var, const std::string& value) {
-		/*! \brief Setzt var auf value
-		*
-		*	Wenn das Element nicht erstellt werden kann, tritt undokumentiertes Verhalten auf.
-		*/
-		values[var] = value;
-	}
+	std::ostream &printTabs(std::ostream&, int);
 
 	template<typename T>
-	void setValue(const std::string& var, T value) {
-		values[var] = std::to_string(value);
-	}
+	class Container : public CFather {
+	protected:
+		
+		std::map<T, Object*> objects;
+		std::map<T, Array*> arrays;
+		std::map<T, std::string> values;
+	public:
+		~Container() {
+			for(std::pair<T, Object*> it : objects) {
+				delete it.second;
+			}
 
-	void setValue(const std::string& var, const char *value) {
-		values[var] = value;
-	}
-
-	void setCF(const std::string& var, ContentFile *cf) {
-		/*! \brief Setzt das Subcontentfile var auf cf
-		*
-		*	Wenn das Element nicht erstellt werden kann, tritt undokumentiertes Verhalten auf.
-		*/
-		if (!cf) {
-			std::cerr << "[WARN] ContentFile::setCF: " << var << " = nullptr" << std::endl;
+			for(std::pair<T, Array*> it : arrays) {
+				delete it.second;
+			}
 		}
-		contentFiles[var] = cf;
-		cf->parent = this;
-	}
 
-	void deleteValue(const std::string& str) {
-		values.erase(str);
-	}
+		Object *getObject(T key) { return objects.at(key); }
+		Object *getCF(T key) { return getObject(key); }
+		Object *getCFSafe(T key) { if(!isObject(key)) return &empty; return this->getCF(key); }
+		Array *getArray(T key) { return arrays.at(key); }
+		const std::string& getValue(T key) { return values.at(key); }
 
-	std::map<std::string, std::string>::iterator deleteValue(std::map<std::string, std::string>::iterator it) {
-		return values.erase(it);
-	}
+		const std::string& getValue(T key, const std::string& notvalue) {
+			if(values.find(key) == values.end()) {
+				return notvalue;
+			} else {
+				return values.at(key);
+			}
+		}
 
-	void deleteCF(const std::string& str) {
-		contentFiles.erase(str);
-	}
+		void setObject(T key, Object *object) { objects[key] = object; }
+		void setArray(T key, Array *arr) { arrays[key] = arr; }
+		void setValue(T key, const std::string& value) { values[key] = value; }
 
-	const std::string& getType() const {
-		/*! \brief Gibt den Typ des ContentFiles zurück
-		*
-		*	Dieser dient nur als Hilfe. Siehe "type"
-		*/
-		return type;
-	}
+		bool isObject(T key) { return objects.find(key) != objects.end(); }
+		bool isArray(T key) { return arrays.find(key) != arrays.end(); }
+		bool isValue(T key) { return values.find(key) != values.end(); }
 
-	bool isGood() const {
-		/*! \brief Gibt zurück, ob das ContentFile erfolgreich erstellt wurde.
-		*
-		*	Bei der Erstellung von ContentFiles aus  Dateien/dem data-String kann es passieren, dass die Datei nicht konform ist.
-		*	Dabei wird keine Exception geliefert, sondern nur diese Variable geändert.
-		*	ReadContentFiles achtet jedoch vor dem befüllen des Vectors automatisch, ob das ContentFile kompatibel ist.
-		*/
-		return good;
-	}
 
-	bool valueExists(const std::string& key) {
-		return values.find(key) != values.end();
-	}
+		typename std::map< T,Object*>::iterator cfBegin() { return objects.begin(); }
+		typename std::map<T, Object*>::iterator cfEnd() { return objects.end(); }
+		typename std::map< T, Array*>::iterator arrayBegin() { return arrays.begin(); }
+		typename std::map< T, Array*>::iterator arrayEnd() { return arrays.end(); }
+		typename std::map< T, std::string>::iterator valueBegin() { return values.begin(); }
+		typename std::map< T, std::string>::iterator valueEnd() { return values.end(); }
 
-	bool contentFileExists(const std::string& key) {
-		return contentFiles.find(key) != contentFiles.end();
-	}
+		void print(std::ostream& out, int tabs) {
+			if(tabs==0) std::cout << "=== ContentFile-Container: ===" << std::endl;
+			if(objects.size() > 0) {
+				printTabs(out, tabs) << "ContentFiles: " << std::endl;
+				for(std::pair<T, Object*> p : objects) {
+					printTabs(out, tabs+1) << p.first << ": " << std::endl;
+					p.second->print(out, tabs+2);
+				}
+			}
+			if(arrays.size() > 0) {
+				printTabs(out, tabs) << "Array: " << std::endl;
+				for(std::pair<T, Array*> p : arrays) {
+					 printTabs(out, tabs+1) << p.first << ": " << std::endl;
+					p.second->print(out, tabs+2);
+				}
+			}
+			if(values.size() > 0) {
+				printTabs(out, tabs) << "Values: " << std::endl;
+				for(std::pair<T, std::string> p : values) {
+					printTabs(out, tabs+1) << p.first << ": " << p.second << std::endl;
+				}
+			}
+		}
 
-	std::map<std::string, std::string>::iterator getVBeginIterator() {
-		/*! \brief Gibt den Begin-Iterator der Variablen-Map zurück **/
-		return values.begin();
-	}
+		void print(std::ostream& out) {
+			print(out, 0);
+		}
 
-	std::map<std::string, std::string>::iterator getVEndIterator() {
-		/*! \brief Gibt den End-Iterator der Variablen-Map zurück **/
-		return values.end();
-	}
+	};
 
-	std::map<std::string, ContentFile*>::iterator getCFBeginIterator() {
-		/*! \brief Gibt den Begin-Iterator der ContentFile-Map zurück */
-		return contentFiles.begin();
-	}
+	class Object : public Container<std::string> {
+	private:
+		Object *parent;
+		std::string type;
+	public:
+		Object(const std::string& data, Object *parent = nullptr);
 
-	std::map<std::string, ContentFile*>::iterator getCFEndIterator() {
-		/* \brief Gibt den End-Iterator der ContentFile-Map zurück */
-		return contentFiles.end();
-	}
+		const std::string& getValRecursive(const std::string& key);
+		const std::string& getValRecursive(const std::string& key, const std::string& notvalue);
 
-	size_t getValueCount() {
-		return values.size();
-	}
-};
+		Object *copy() {
+			Object *o = new Object(*this);
+			return o;
+		}
 
-std::vector<ContentFile*> readContentFiles(const std::string& filename, int maxCount = -1);
-void saveContentFileTo(ContentFile *cf, std::fstream& file, int tabs = 0);
+		void saveToFile(std::fstream&);
+	};
 
-inline ContentFile *findCF(const std::vector<ContentFile*> vec, const std::string& name, const std::string& value) {
-	for (size_t i = 0; i < vec.size(); i++) {
-		if (vec[i]->getValue(name, (value == "null" ? "X" : "null")) == value) return vec[i];
-	}
-	return nullptr;
+	class Array : public Container<size_t> {
+	private:
+		size_t mysize = 0;
+	public:
+		Array(const std::string& data);
+
+		void push_back(Object *o) { objects[mysize++] = o; }
+		void push_back(Array *a) { arrays[mysize++] = a; }
+		void push_back(const std::string& str) { values[mysize++] = str; }
+
+		void saveToFile(std::fstream &file);
+
+		size_t getSize() { return mysize; }
+	};
 }
 
-void compressCFComparison(ContentFile *cf, ContentFile *comp);
+typedef contentfile::Object ContentFile;
 
-#endif
+ContentFile *readContentFile(const std::string& filename);

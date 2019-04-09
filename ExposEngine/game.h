@@ -12,9 +12,10 @@ namespace expos {
 
 	class Game {
 	private:
-		ContentFile gameConfig;
+		ContentFile *gameConfig;
 		ALLEGRO_EVENT_QUEUE * queue;
 		ALLEGRO_TIMER *logicTimer;
+		MessageBus *mb;
 		Window *mainWindow;
 		bool drawingHalted = false;
 		bool running = true;

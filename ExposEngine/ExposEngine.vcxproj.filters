@@ -57,6 +57,12 @@
     <ClInclude Include="draw.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="filemanager.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="stringmanager.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -90,6 +96,12 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="gui.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="filemanager.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="stringmanager.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

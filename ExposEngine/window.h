@@ -17,7 +17,7 @@ namespace expos {
 		DrawList drawList;
 		ALLEGRO_THREAD *thread;
 	public:
-		Window(ID id, ContentFile*, ALLEGRO_EVENT_QUEUE*);
+		Window(ID id, MessageBus*, ContentFile*, ALLEGRO_EVENT_QUEUE*);
 		~Window();
 
 		void open();

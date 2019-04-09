@@ -73,8 +73,8 @@ namespace expos {
 	}
 
 
-	Window::Window(ID id, ContentFile *windowConfig, ALLEGRO_EVENT_QUEUE *queue) : id(id) {
-		void **arguments = new void*[3] { (void*)&drawList, (void*)queue, (void*)windowThread};
+	Window::Window(ID id, MessageBus *mb, ContentFile *windowConfig, ALLEGRO_EVENT_QUEUE *queue) : MessageReciever(mb, RECIEVER_DISPLAY), id(id) {
+		void **arguments = new void*[3] { (void*)&drawList, (void*)queue, (void*)windowConfig};
 		thread = al_create_thread(windowThread, arguments);
 	}
 

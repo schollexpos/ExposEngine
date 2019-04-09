@@ -37,6 +37,7 @@ namespace expos {
 	}
 
 	void Packfile::read(const std::string& inputfile) {
+		std::cout << "Reading Packfile from " << inputfile << std::endl;
 		std::ifstream in(inputfile, std::ios::in | std::ios::binary);
 
 		char header[4];
@@ -62,6 +63,7 @@ namespace expos {
 
 			Filename filename = getFilename(fullFilename);
 			files.push_back({filename, nullptr, offset, size });
+			std::cout << "\tFile: " << filename.filename << " Path: " << filename.path << " Size: " << (size/1024 > 1024 ? ((double)size/1024.0/1024.0) : ((double)size/1024.0)) << (size/1024 > 1024 ? "MB" : "KB") << std::endl;
 
 
 			if (filename.filename == PACKFILE_MAGICENDFILENAME) break;

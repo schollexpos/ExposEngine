@@ -25,11 +25,15 @@ namespace expos {
 			return al_map_rgba(comp[0], comp[1], comp[2], comp[3]);
 		}
 
+		Point<Pixel> parsePoint(Size<Pixel> parent, const std::string& x, const std::string& y) {
+			return {Coordinate::parse(x, parent, true), Coordinate::parse(y, parent, false)};
+		}
+
 		Label::Label(ContentFile* cf, const Element& parent) : 
 			Element(ID(ID_GUILABEL), parsePoint(parent.getSize(), cf->getValue("x"), cf->getValue("y"))),
-			font(ID(cf->getValueRec("font"))),
+			font(ID(cf->getValRecursive("font"))),
 			text(cf->getValue("text", "null")),
-			color(html2color(cf->getValueRec("color"))) {
+			color(html2color(cf->getValRecursive("color"))) {
 
 		}
 
@@ -40,10 +44,10 @@ namespace expos {
 
 		Button::Button(ContentFile *cf, const Element& parent) :
 			Element(ID(ID_GUILABEL), parsePoint(parent.getSize(), cf->getValue("x"), cf->getValue("y"))),
-			color(html2color(cf->getValueRec("color"))),
-			bgcolor(html2color(cf->getValueRec("bgcolor"))),
-			hlcolor(html2color(cf->getValueRec("highlighted"))),
-			text(parsePoint(this->getSize(), "2%", "2%"), ID(cf->getValueRec("font")), cf->getValue("text", "null"), this->color) {
+			color(html2color(cf->getValRecursive("color"))),
+			bgcolor(html2color(cf->getValRecursive("bgcolor"))),
+			hlcolor(html2color(cf->getValRecursive("highlighted"))),
+			text(parsePoint(this->getSize(), "2%", "2%"), ID(cf->getValRecursive("font")), cf->getValue("text", "null"), this->color) {
 
 
 			Pixel margin = (int) ((double)text.getSize().h * 0.10);

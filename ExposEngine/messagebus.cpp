@@ -2,6 +2,11 @@
 #include "messagebus.h"
 
 namespace expos {
+
+	MessageReciever::MessageReciever(MessageBus *mb, uint8_t recieving) : mb(mb), recieving(recieving) {
+		if(mb) mb->registerReciever(this);
+	}
+
 	MessageBus::MessageBus() : mutexMQueue(al_create_mutex()), mutexRecievers(al_create_mutex()), mutexRequest(al_create_mutex()), messages(new Message[MAXMESSAGECOUNT]) {
 		for (size_t i = 0; i < MAXMESSAGECOUNT-1;i++) {
 			messages[i].next = &messages[i + 1];
@@ -43,6 +48,7 @@ namespace expos {
 		Message *m = first, *oldOpen;
 		al_unlock_mutex(mutexMQueue);
 		while (m) {
+			std::cout << "MESSAGE" << std::endl;
 			for (size_t i = 0; i < messageRecievers.size();i++) {
 				if (messageRecievers[i]->getRecieving() & m->recievers) {
 					
@@ -57,7 +63,10 @@ namespace expos {
 				}
 			}
 
+			m = m->next;
 		}
+
+		first = nullptr;
 	}
 
 	bool MessageBus::sendRequest(const Message &m, Answer *a) {
@@ -85,6 +94,12 @@ namespace expos {
 		m->recievers = RECIEVER_DISPLAY;
 		m->data.window.m = info;
 		m->data.window.window = window._ref();
+	}
+
+	void messageFileManagerLoadPF(Message *m, ID filename) {
+		m->type = MESSAGE_FILEMANAGER_LOADPF;
+		m->recievers = RECIEVER_FILEMAN;
+		m->data.filemanager.filename = filename._ref();
 	}
 
 }
